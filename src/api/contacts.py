@@ -23,6 +23,7 @@ async def read_contacts(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Return a paginated and optionally filtered list of the user's contacts."""
     contact_service = ContactService(db)
     return await contact_service.get_contacts(
         skip, limit, user, first_name, last_name, email
@@ -33,6 +34,7 @@ async def read_contacts(
 async def read_upcoming_birthdays(
     db: AsyncSession = Depends(get_db), user: User = Depends(get_current_user)
 ):
+    """Return contacts with birthdays in the upcoming seven-day period."""
     contact_service = ContactService(db)
     return await contact_service.get_upcoming_birthdays(user)
 
@@ -43,6 +45,7 @@ async def read_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Return one contact owned by the authenticated user."""
     contact_service = ContactService(db)
     contact = await contact_service.get_contact(contact_id, user)
     if contact is None:
@@ -58,6 +61,7 @@ async def create_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Create a contact while enforcing per-user email uniqueness."""
     contact_service = ContactService(db)
     contact = await contact_service.get_contact_by_email(body.email, user)
     if contact:
@@ -75,6 +79,7 @@ async def update_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Update a contact owned by the authenticated user."""
     contact_service = ContactService(db)
     contact = await contact_service.get_contact(contact_id, user)
     if contact is None:
@@ -98,6 +103,7 @@ async def remove_contact(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    """Delete a contact owned by the authenticated user."""
     contact_service = ContactService(db)
     contact = await contact_service.remove_contact(contact_id, user)
     if contact is None:

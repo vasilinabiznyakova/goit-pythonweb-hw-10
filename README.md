@@ -1,102 +1,68 @@
 # Contacts API
 
-REST API для зберігання та управління контактами на FastAPI, SQLAlchemy і PostgreSQL.
+Асинхронний REST API на FastAPI для керування приватною книгою контактів.
 
 ## Можливості
 
-- створення контакту;
-- отримання списку контактів;
-- пошук за іменем, прізвищем або email через query-параметри;
-- отримання одного контакту за `id`;
-- оновлення контакту;
-- видалення контакту;
-- список контактів з днями народження у найближчі 7 днів;
-- Swagger-документація FastAPI.
+- реєстрація, підтвердження email та JWT-авторизація;
+- безпечний запит на скидання пароля без розкриття наявності облікового запису;
+- ролі `user` і `admin`;
+- зміна аватара через Cloudinary лише для адміністратора;
+- CRUD, пошук контактів і найближчі дні народження;
+- кешування поточного користувача в Redis із TTL;
+- PostgreSQL, Redis та застосунок у Docker Compose;
+- unit- та integration-тести з покриттям понад 75%;
+- документація, згенерована Sphinx із docstrings.
 
-## Структура
+## Налаштування і запуск
 
-```text
-├── src
-│   ├── api
-│   │   ├── contacts.py
-│   │   └── utils.py
-│   ├── services
-│   │   └── contacts.py
-│   ├── repository
-│   │   └── contacts.py
-│   ├── database
-│   │   ├── models.py
-│   │   └── db.py
-│   ├── conf
-│   │   └── config.py
-│   └── schemas.py
-├── main.py
-├── requirements.txt
-└── docker-compose.yml
-```
-
-## Запуск
-
-1. Створіть віртуальне оточення та встановіть залежності:
+Створіть `.env` на основі `.env.example` та замініть усі демонстраційні значення.
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+docker compose up --build
 ```
 
-Для Windows PowerShell:
+Після запуску доступні Swagger UI `http://localhost:8000/docs` і health-check
+`http://localhost:8000/api/healthchecker`.
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+Нові користувачі отримують роль `user`. Першому адміністратору потрібно безпечно
+призначити значення `admin` у колонці `users.role` засобами адміністрування БД.
+Публічного API для самопризначення ролі адміністратора навмисно немає.
 
-2. Запустіть PostgreSQL:
+## Основні маршрути
+
+| Метод | Маршрут | Призначення |
+|---|---|---|
+| POST | `/api/auth/register` | Реєстрація |
+| POST | `/api/auth/login` | Отримання access token |
+| GET | `/api/auth/confirmed_email/{token}` | Підтвердження email |
+| POST | `/api/auth/request-password-reset` | Запит скидання пароля |
+| POST | `/api/auth/reset-password` | Встановлення нового пароля |
+| GET | `/api/users/me` | Поточний користувач |
+| PATCH | `/api/users/avatar` | Зміна аватара адміністратором |
+| GET/POST | `/api/contacts/` | Список або створення контакту |
+| GET/PUT/DELETE | `/api/contacts/{id}` | Операції з контактом |
+| GET | `/api/contacts/birthdays` | Найближчі дні народження |
+
+## Тести та покриття
 
 ```bash
-docker compose up -d
+python -m pip install -r requirements.txt
+python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=75
 ```
 
-3. Створіть `.env` на основі `.env.example` або використайте стандартний рядок підключення:
+Тести використовують окрему SQLite-базу в пам'яті та моки зовнішніх сервісів,
+тому не змінюють робочу базу і не надсилають реальні листи чи файли.
 
-```env
-DB_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/contacts_db
-```
-
-4. Запустіть застосунок:
+## Sphinx
 
 ```bash
-uvicorn main:app --reload
+python -m sphinx -W -b html docs docs/_build/html
 ```
 
-Swagger буде доступний за адресою:
+Готова документація: `docs/_build/html/index.html`.
 
-```text
-http://127.0.0.1:8000/docs
-```
+## Конфіденційні дані
 
-## Приклади запитів
-
-Створити контакт:
-
-```bash
-curl -X POST http://127.0.0.1:8000/api/contacts/ \
-  -H "Content-Type: application/json" \
-  -d '{"first_name":"Ivan","last_name":"Petrenko","email":"ivan@example.com","phone":"+380501234567","birthday":"1998-05-21","additional_data":"friend"}'
-```
-
-Пошук:
-
-```text
-GET /api/contacts/?first_name=Ivan
-GET /api/contacts/?last_name=Petrenko
-GET /api/contacts/?email=ivan
-```
-
-Найближчі дні народження:
-
-```text
-GET /api/contacts/birthdays
-```
+Файл `.env` виключений із Git. У репозиторії зберігається лише `.env.example`
+без справжніх паролів, JWT-секретів та ключів зовнішніх сервісів.

@@ -22,6 +22,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    """Create database tables when the application starts."""
     await sessionmanager.create_all()
 
 
