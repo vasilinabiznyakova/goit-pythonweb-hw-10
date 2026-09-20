@@ -5,7 +5,3 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
-docs/_build/
-test.db

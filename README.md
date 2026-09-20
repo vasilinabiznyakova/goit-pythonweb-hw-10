@@ -1,68 +1,102 @@
 # Contacts API
 
-Асинхронний REST API на FastAPI для керування приватною книгою контактів.
+REST API для зберігання та управління контактами на FastAPI, SQLAlchemy і PostgreSQL.
 
 ## Можливості
 
-- реєстрація, підтвердження email та JWT-авторизація;
-- безпечний запит на скидання пароля без розкриття наявності облікового запису;
-- ролі `user` і `admin`;
-- зміна аватара через Cloudinary лише для адміністратора;
-- CRUD, пошук контактів і найближчі дні народження;
-- кешування поточного користувача в Redis із TTL;
-- PostgreSQL, Redis та застосунок у Docker Compose;
-- unit- та integration-тести з покриттям понад 75%;
-- документація, згенерована Sphinx із docstrings.
+- створення контакту;
+- отримання списку контактів;
+- пошук за іменем, прізвищем або email через query-параметри;
+- отримання одного контакту за `id`;
+- оновлення контакту;
+- видалення контакту;
+- список контактів з днями народження у найближчі 7 днів;
+- Swagger-документація FastAPI.
 
-## Налаштування і запуск
+## Структура
 
-Створіть `.env` на основі `.env.example` та замініть усі демонстраційні значення.
-
-```bash
-docker compose up --build
+```text
+├── src
+│   ├── api
+│   │   ├── contacts.py
+│   │   └── utils.py
+│   ├── services
+│   │   └── contacts.py
+│   ├── repository
+│   │   └── contacts.py
+│   ├── database
+│   │   ├── models.py
+│   │   └── db.py
+│   ├── conf
+│   │   └── config.py
+│   └── schemas.py
+├── main.py
+├── requirements.txt
+└── docker-compose.yml
 ```
 
-Після запуску доступні Swagger UI `http://localhost:8000/docs` і health-check
-`http://localhost:8000/api/healthchecker`.
+## Запуск
 
-Нові користувачі отримують роль `user`. Першому адміністратору потрібно безпечно
-призначити значення `admin` у колонці `users.role` засобами адміністрування БД.
-Публічного API для самопризначення ролі адміністратора навмисно немає.
-
-## Основні маршрути
-
-| Метод | Маршрут | Призначення |
-|---|---|---|
-| POST | `/api/auth/register` | Реєстрація |
-| POST | `/api/auth/login` | Отримання access token |
-| GET | `/api/auth/confirmed_email/{token}` | Підтвердження email |
-| POST | `/api/auth/request-password-reset` | Запит скидання пароля |
-| POST | `/api/auth/reset-password` | Встановлення нового пароля |
-| GET | `/api/users/me` | Поточний користувач |
-| PATCH | `/api/users/avatar` | Зміна аватара адміністратором |
-| GET/POST | `/api/contacts/` | Список або створення контакту |
-| GET/PUT/DELETE | `/api/contacts/{id}` | Операції з контактом |
-| GET | `/api/contacts/birthdays` | Найближчі дні народження |
-
-## Тести та покриття
+1. Створіть віртуальне оточення та встановіть залежності:
 
 ```bash
-python -m pip install -r requirements.txt
-python -m pytest --cov=src --cov-report=term-missing --cov-fail-under=75
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
-Тести використовують окрему SQLite-базу в пам'яті та моки зовнішніх сервісів,
-тому не змінюють робочу базу і не надсилають реальні листи чи файли.
+Для Windows PowerShell:
 
-## Sphinx
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+2. Запустіть PostgreSQL:
 
 ```bash
-python -m sphinx -W -b html docs docs/_build/html
+docker compose up -d
 ```
 
-Готова документація: `docs/_build/html/index.html`.
+3. Створіть `.env` на основі `.env.example` або використайте стандартний рядок підключення:
 
-## Конфіденційні дані
+```env
+DB_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/contacts_db
+```
 
-Файл `.env` виключений із Git. У репозиторії зберігається лише `.env.example`
-без справжніх паролів, JWT-секретів та ключів зовнішніх сервісів.
+4. Запустіть застосунок:
+
+```bash
+uvicorn main:app --reload
+```
+
+Swagger буде доступний за адресою:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Приклади запитів
+
+Створити контакт:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/contacts/ \
+  -H "Content-Type: application/json" \
+  -d '{"first_name":"Ivan","last_name":"Petrenko","email":"ivan@example.com","phone":"+380501234567","birthday":"1998-05-21","additional_data":"friend"}'
+```
+
+Пошук:
+
+```text
+GET /api/contacts/?first_name=Ivan
+GET /api/contacts/?last_name=Petrenko
+GET /api/contacts/?email=ivan
+```
+
+Найближчі дні народження:
+
+```text
+GET /api/contacts/birthdays
+```
